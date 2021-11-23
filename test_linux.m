@@ -1,5 +1,7 @@
 clc;
 
+addpath('functions');
+
 load sglfitF_data
 
 obj1 = sgl(x,y, 'gamma', 0.5);

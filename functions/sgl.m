@@ -51,6 +51,9 @@ function output = sgl(x,y,varargin)
 %                  If the algorithm does not converge, consider increasing maxit.
 % 'peps'           convergence threshold for proximal map of sg-LASSO penalty. Each loop continues until G group difference 
 %                  sup-norm, ||β^k_G - β^k-1_G||_∞, is less than peps. Defaults value is 1e-8     
+% 'fe'             If we need to fit fixed effects. 'N', number of fixed
+%                  effects must be supplied in this case.
+% 'N'              Number of fixed effects in panel regression.
 %          
 %
 % DETAILS:
@@ -64,9 +67,9 @@ function output = sgl(x,y,varargin)
 % DATE: 2021-06-09
 % AUTHOR: Jonas Striaukas
 % LICENSE: GPL-2
-[gamma,nlambda,lambda_factor,lambda,pf,gindex,dfmax,pmax,standardize,intercept,eps,maxit,peps] = ...
+[gamma,nlambda,lambda_factor,lambda,pf,gindex,dfmax,pmax,standardize,intercept,eps,maxit,peps,fe,N] = ...
         process_options(varargin,'gamma',1,'nlambda',100,'lambda_factor',[],'lambda',[],'pf',[],'gindex',[], ...
-        'dfmax',[],'pmax',[],'standardize',false,'intercept',true,'eps',1e-8,'maxit',1e6,'peps',1e-8);
+        'dfmax',[],'pmax',[],'standardize',false,'intercept',true,'eps',1e-8,'maxit',1e6,'peps',1e-8,'fe',false,'N',[]);
 
 nobs = int32(size(x,1));
 nvars = int32(size(x,2));
@@ -126,21 +129,43 @@ x = double(x);
 y = double(y);
 pf = double(pf);
 dfmax = int32(dfmax);
-pmax = int16(pmax);
-nlam = int16(nlam);
+pmax = int32(pmax);
+nlam = int32(nlam);
 eps = double(eps);
 peps = double(peps);
 isd = int32(standardize);
 intr = int32(intercept);
 maxit = int32(maxit);
 
-
 % --------------------------------- fit sg-LASSO -------------------------%
-[nalam,b0,beta,ibeta,nbeta,alam,npass,jerr] = sglfit(gamma, ngroups, gindex, ...
-        nobs, nvars, x, y, pf, dfmax, pmax, nlam, flmin, ulam, ... 
-        eps, peps, isd, int32(intr), maxit);
-% ------------------------------------------------------------------------% 
-
+if fe
+    yn = y;
+    xn = x;
+    T = size(x,1)/N;
+    if rem(T,1)~=0
+        error('you chose to fit fixed effects with sg-LASSO, but the number of fixed effects specified is wrong, i.e. NT != N * T. change ''N'' or set ''fe=false''.')
+    end
+    ymb = zeros(N,1);
+    xmb = zeros(N,size(x,2));
+    for k = 1:N
+        festart = (k-1)*T+1;
+        feend = k*T;
+        ymb(k) = mean(y(festart:feend));
+        xmb(k,:) = mean(x(festart:feend,:),1);
+        yn(festart:feend) = y(festart:feend) - ymb(k);
+        xn(festart:feend,:) = x(festart:feend,:) - xmb(k,:);
+    end
+    intr = int32(0);
+     [nalam,b0,beta,ibeta,nbeta,alam,npass,jerr] = sglfit(gamma, ngroups, gindex, ...
+            nobs, nvars, xn, yn, pf, dfmax, pmax, nlam, flmin, ulam, ... 
+            eps, peps, isd, int32(intr), maxit);
+else
+    
+    [nalam,b0,beta,ibeta,nbeta,alam,npass,jerr] = sglfit(gamma, ngroups, gindex, ...
+            nobs, nvars, x, y, pf, dfmax, pmax, nlam, flmin, ulam, ... 
+            eps, peps, isd, int32(intr), maxit);
+end
+% ------------------------------------------------------------------------%   
 if (jerr~=0)
     errmsg = err(jerr,maxit,pmax);
     if (errmsg.fatal)
@@ -154,7 +179,15 @@ for l = 1:nalam
     nk = nbeta(l);
     b(ibeta(1:nk),l) = beta(1:nk,l);
 end
-
+if fe
+    b0 = zeros(nlambda, 1);
+    a0 = zeros(N, nlambda);
+    for l = 1:nlambda
+        a0(:,l) = ymb - xmb*b(:,l);
+    end
+    output.a0 = a0;
+    output.N = N;
+end
 output.b0 = b0;
 output.beta = b;
 output.npass = npass;
@@ -202,5 +235,3 @@ function output = errsgl(n,maxit,pmax)
         output.msg = msg;
     end
 end
-    
-    

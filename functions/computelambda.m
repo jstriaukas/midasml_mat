@@ -1,5 +1,8 @@
 function ulam = computelambda(nlambda, flmin, nobs, x, y, gamma, gindex, ngroups, pf)
     maxlam = maxlambda(nobs, x, y, gamma, gindex, ngroups, pf);
+    if isnan(maxlam)
+        error('data in x or y has missing entries/NaNs. program cannot proceed');
+    end
     ulam = double(zeros(nlambda,1));
     ulam(1) = maxlam;
     for j = 2:nlambda
@@ -50,6 +53,7 @@ end
 
 function out = solvewmaxg(gstart, gend, gamma, lb, rb, gw, pf, xy)
     stopflag = false;
+    tol = 1e-13;
     while stopflag == false
         mp = 0.5 * (lb + rb);
         fl = 0.0;

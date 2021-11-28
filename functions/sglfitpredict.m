@@ -1,4 +1,7 @@
 function pred = sglfitpredict(obj, newx, fe)
+if nargin < 3
+    fe = false;
+end
 [n,~] = size(newx);
 if fe
     fes = [];

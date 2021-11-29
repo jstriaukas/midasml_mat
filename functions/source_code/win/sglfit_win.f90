@@ -121,13 +121,6 @@
         al = ulam(l)
         ctr = 0
         pln = 0
-        If (intr == 1) Then
-          If (l == 1) Then
-            b(0) = sum(y)/nobs
-          Else
-            b(0) = b0(l-1)
-          End If
-        End If
         Do
           If (intr == 1) oldbeta(0) = b(0)
           If (ni > 0) oldbeta(m(1:ni)) = b(m(1:ni))

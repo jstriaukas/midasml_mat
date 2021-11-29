@@ -29,26 +29,16 @@
 	  Real*8, Dimension(:), Allocatable :: xnorm
 	  Real*8, Dimension(:), Allocatable :: maj
 
-!!$   print*,"Fortran"
-!!$   print*," ngroups, nobs, nvars,dfmax"
-!!$   print*,ngroups, nobs, nvars,dfmax
-!!$
-!!$   print*," pmax, nlam, isd,intr, maxit"
-!!$   print*,  pmax, nlam, isd,intr, maxit
-!!$
-!!$   print*," gindex;",gindex(1:5)
 
-   
-!   return
-! initialize
-   nalam=0
-   b0=0.d0
-   beta=0.d0
-   ibeta=0
-   nbeta=0
-   alam=0.d0
-   npass=0
-   jerr=0
+
+      nalam=0
+      b0=0.d0
+      beta=0.d0
+      ibeta=0
+      nbeta=0
+      alam=0.d0
+      npass=0
+      jerr=0
       
       ALLOCATE(ju(1:nvars), Stat=ierr)
       jerr = jerr + ierr
@@ -98,13 +88,6 @@
               b0(l)=b0(l)-dot_product(beta(1:nk,l),xmean(ibeta(1:nk)))
           End If
       End Do
-
-
-!!$      do l=1,nlam
-!!$        write(*,'("l, nbeta:",2(i4))')l,nbeta(l)
-!!$      enddo
-
-!!$
       
       DEALLOCATE(ju,xmean,xnorm,maj)
       Return
@@ -159,13 +142,6 @@
         al = ulam(l)
         ctr = 0
         pln = 0
-        If (intr == 1) Then
-          If (l == 1) Then
-            b(0) = sum(y)/nobs
-          Else
-            b(0) = b0(l-1)
-          End If
-        End If
         Do
           If (intr == 1) oldbeta(0) = b(0)
           If (ni > 0) oldbeta(m(1:ni)) = b(m(1:ni))

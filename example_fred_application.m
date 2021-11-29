@@ -18,7 +18,7 @@ load 'fred_example/fred_example_data.mat';
 % in the database using 12 monthly lags
 
 y = data(:,1);
-xtmp = data(:,3:end);
+xtmp = data(:,2:end);
 
 % data y and xtmp contains NaNs. Some are in the middle of the sample
 % (perhaps missing observations) some are at the end (most likely ragged
@@ -43,10 +43,12 @@ w = lb(g, degree, 0, 1);% weights of Legendre poly.
 
 warning('off')
 [T,p] = size(xtmp);
+p = 20;
 x = zeros(T - jmax - horizon + 2, p * (degree + 1));
 gindex = zeros(p * (degree + 1),1);
 for i = 1:p
-   out = mixed_freq_data(xtmp(:,1),dates,xtmp(:,1),dates,jmax,horizon,0,dates(1),dates(end),false);
+   xtmpn = xtmp(:,i);
+   out = mixed_freq_data(xtmpn,dates,xtmpn,dates,jmax,horizon,0,dates(1),dates(end),false);
    xw = out.EstX*w;
    idx = (i * (degree + 1) - degree) : i * (degree + 1);
    x(:,idx) = xw;
@@ -56,9 +58,10 @@ end
 % drop data from the start of the y vector to match x (due to lags etc.):
 y = y((jmax + horizon - 1):end);
 
+
 % run cv sg-LASSO:
 % takes some time...
-fit = cvsglfit(x, y, 'gamma', 0.5, nfolds = 5);
+fit = cvsglfit(x, y, 'gamma', 0.5, 'gindex', gindex, 'standardize', true);
 % beta's:
 fit.cvsglfit.lam_min.beta
 % intercept:
@@ -70,8 +73,8 @@ fit.cvsglfit.lam_min.b0
 gamma = linspace(1,0,21);
 cvms = zeros(21, 1);
 for gi = 1:21
-    fit = cvsglfit(x, y, 'gamma', gamma(gi), nfolds = 5);
+    fit = cvsglfit(x, y, 'gamma', gamma(gi), 'gindex', gindex, 'standardize', true);
     cvms(gi) = min(fit.cvm);
 end
 idx = find(min(cvms)==cvms,1,'first');
-fit = cvsglfit(x, y, 'gamma', gamma(idx), nfolds = 5);
+fit = cvsglfit(x, y, 'gamma', gamma(idx), 'gindex', gindex, 'standardize', true);

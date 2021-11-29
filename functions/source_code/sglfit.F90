@@ -197,13 +197,19 @@
             If (intr == 1) Then
               oldb = oldbeta(0)
               u = 0.0D0
-              Do
-                d = sum(r)/nobs
-                If (d**2 < eps) Exit
-                u = u + d
+              !DO ! BEGIN GRADIENT DESCENT
+                    !    d = SUM(r)/nobs
+                    !    IF (d**2 < eps) EXIT
+                    !    u = u + d
+                    !    r = r - d
+              !END DO ! END GRADIENT DESCENT
+              DO ! BEGIN GRADIENT DESCENT
+                d = SUM(r)/nobs
+                IF (d**2 < eps) EXIT
+                b(0) = b(0) + d
                 r = r - d
-              End Do
-              b(0) = u
+              END DO ! END GRADIENT DESCENT
+              !b(0) = u
               d = b(0) - oldb
               If (abs(d) > 0.0D0) dif = max(dif, d**2)
             End If

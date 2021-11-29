@@ -11,9 +11,11 @@
       ! -------- INPUT VARIABLES -------- !
       Integer nobs, nvars, dfmax, pmax, nlam, isd, intr, ngroups, nalam
       Integer maxit, npass, jerr
-      Integer nbeta(nlam), ibeta(pmax)
-	  Integer gindex(ngroups)
-      
+      !Integer nbeta(nlam), ibeta(pmax)
+	  !Integer gindex(ngroups)
+      Integer*4  nbeta(nlam), ibeta(pmax)
+	  Integer*4  gindex(ngroups)
+
       Real*8 flmin, eps, peps, gamma
       Real*8 x(nobs, nvars), y(nobs), pf(nvars)
       Real*8 b0(nlam), beta(pmax, nlam)
@@ -26,7 +28,14 @@
 	  Real*8, Dimension(:), Allocatable :: xnorm
 	  Real*8, Dimension(:), Allocatable :: maj
       
-	  
+	  nalam=0
+      b0=0.d0
+      beta=0.d0
+      ibeta=0
+      nbeta=0
+      alam=0.d0
+      npass=0
+      jerr=0
 	  
       ALLOCATE(ju(1:nvars), Stat=ierr)
       jerr = jerr + ierr
@@ -83,7 +92,9 @@
       IMPLICIT NONE
       INTEGER mnl, nobs, nvars, dfmax, pmax, nlam, maxit
       INTEGER nalam, npass, jerr, intr, ngroups
-      INTEGER ju(nvars), m(pmax), nbeta(nlam), gindex(ngroups)
+      !INTEGER ju(nvars), m(pmax), nbeta(nlam), gindex(ngroups)
+      INTEGER ju(nvars) 
+      INTEGER*4 m(pmax), nbeta(nlam), gindex(ngroups)
       Real*8 eps, gamma, bnorm, peps
       Real*8 x(nobs, nvars), y(nobs), maj(nvars)
       Real*8 pf(nvars)
@@ -176,12 +187,13 @@
             If (intr == 1) Then
               oldb = oldbeta(0)
               u = 0.0D0
-              Do
-                d = sum(r)/nobs
-                If (d**2 < eps) Exit
-                u = u + d
+              DO ! BEGIN GRADIENT DESCENT
+                d = SUM(r)/nobs
+                IF (d**2 < eps) EXIT
+                b(0) = b(0) + d
                 r = r - d
-              End Do
+              END DO ! END GRADIENT DESCENT
+
               b(0) = u
               d = b(0) - oldb
               If (abs(d) > 0.0D0) dif = max(dif, d**2)
@@ -235,7 +247,9 @@
       ! -------- INPUT VARIABLES -------- !
       INTEGER mnl, nobs, nvars, dfmax, pmax, nlam, maxit
       INTEGER nalam, npass, jerr, intr
-      INTEGER ju(nvars), m(pmax), nbeta(nlam)
+      !INTEGER ju(nvars), m(pmax), nbeta(nlam)
+      INTEGER ju(nvars)
+      INTEGER*4 m(pmax), nbeta(nlam)
       Real*8 eps
       Real*8 x(nobs, nvars), y(nobs), maj(nvars)
       Real*8 pf(nvars)
@@ -501,58 +515,63 @@
 
 
       SUBROUTINE mexFunction(nlhs, plhs, nrhs, prhs)
-      IMPLICIT NONE
+        IMPLICIT NONE
       mwPointer  mxGetM, mxGetN, mxGetPr
       mwPointer  mxIsNumeric, mxCreateDoubleMatrix
-	  mwPointer  mxClassIDFromClassName, mxCreateNumericArray
+      mwPointer  mxClassIDFromClassName, mxCreateNumericArray
       mwPointer  plhs(*), prhs(*)
-	  mwPointer  temp_pr
-	  mwPointer  gamma_pr, ngroups_pr, gindex_pr, nobs_pr
-	  mwPointer  nvars_pr, x_pr, y_pr, pf_pr, dfmax_pr
-	  mwPointer  pmax_pr, nlam_pr, flmin_pr, ulam_pr
-	  mwPointer  eps_pr, peps_pr, isd_pr, intr_pr, maxit_pr
-	  mwPointer  nalam_pr, b0_pr, beta_pr, ibeta_pr
-	  mwPointer  nbeta_pr, alam_pr, npass_pr, jerr_pr
+      mwPointer  temp_pr
+      mwPointer  gamma_pr, ngroups_pr, gindex_pr, nobs_pr
+      mwPointer  nvars_pr, x_pr, y_pr, pf_pr, dfmax_pr
+      mwPointer  pmax_pr, nlam_pr, flmin_pr, ulam_pr
+      mwPointer  eps_pr, peps_pr, isd_pr, intr_pr, maxit_pr
+      mwPointer  nalam_pr, b0_pr, beta_pr, ibeta_pr
+      mwPointer  nbeta_pr, alam_pr, npass_pr, jerr_pr
       INTEGER nlhs, nrhs
       INTEGER m, n, size, tmp1, tmp2, nlams, q
       INTEGER dims(2), clsid
-      Real*8 gamma(1), ngroups(1), nobs(1), nvars(1), dfmax(1)
-	  Real*8 flmin(1), eps(1), peps(1), isd(1)
-      Real*8 intr(1), maxit(1), nalam(1)
-	  Real*8 npass(1), jerr(1)
-	  Real*8 ingroups, gindex(100000), pmax(1), nlam(1)
-	  Real*8, Dimension(:,:), Allocatable :: x
+
+      Real*8 gamma,flmin, eps, peps
+      Integer dfmax, ngroups, nobs, nvars
+      Integer  isd
+      Integer intr, maxit, nalam
+      Integer npass, jerr
+      Integer*4 gindex(100000)
+      Integer pmax
+      Integer ingroups, nlam
+
+
+      
+      Real*8, Dimension(:,:), Allocatable :: x
 	  Real*8, Dimension(:), Allocatable :: y
 	  Real*8, Dimension(:), Allocatable :: pf
 	  Real*8, Dimension(:), Allocatable :: ulam
 	  Real*8, Dimension(:), Allocatable :: b0
 	  Real*8, Dimension(:,:), Allocatable :: beta
-	  Real*8, Dimension(:), Allocatable :: ibeta
-	  Real*8, Dimension(:), Allocatable :: nbeta
+      Integer*4, Dimension(:), Allocatable :: ibeta
+	  Integer*4, Dimension(:), Allocatable :: nbeta
 	  Real*8, Dimension(:), Allocatable :: alam
-
 
 
       gamma_pr = mxGetPr(prhs(1))
 	  call mxCopyPtrToReal8(gamma_pr, gamma, 1)
       
 	  ngroups_pr = mxGetPr(prhs(2))
-	  call mxCopyPtrToReal8(ngroups_pr, ngroups, 1)
+      call mxCopyPtrToInteger8(ngroups_pr, ngroups, 1)
 	  
 	  gindex_pr = mxGetPr(prhs(3))
-	  !call mxCopyPtrToReal8(gindex_pr, gindex, ngroups)
 	  call mxCopyPtrToInteger4(gindex_pr, gindex, ngroups)
 	  
 	  nobs_pr = mxGetPr(prhs(4))
-	  call mxCopyPtrToReal8(nobs_pr, nobs, 1)
+      call mxCopyPtrToInteger8(nobs_pr, nobs, 1)
 	  
 	  nvars_pr = mxGetPr(prhs(5))
-	  call mxCopyPtrToReal8(nvars_pr, nvars, 1)
+      call mxCopyPtrToInteger8(nvars_pr, nvars, 1)
 	  
 	  m = mxGetM(prhs(6))
-      n = mxGetN(prhs(6))
+          n = mxGetN(prhs(6))
 	  
-      ALLOCATE(x(m, n))
+          ALLOCATE(x(m, n))
 	  x_pr = mxGetPr(prhs(6))
 	  call mxCopyPtrToReal8(x_pr, x, m*n)
 	  
@@ -565,28 +584,29 @@
 	  call mxCopyPtrToReal8(pf_pr, pf, n)
 	  
 	  dfmax_pr = mxGetPr(prhs(9))
-	  call mxCopyPtrToReal8(dfmax_pr, dfmax, 1)
+          call mxCopyPtrToInteger8(dfmax_pr, dfmax, 1)
 	  
 	  pmax_pr = mxGetPr(prhs(10))
-	  call mxCopyPtrToReal8(pmax_pr, pmax, 1)
+          call mxCopyPtrToInteger8(pmax_pr, pmax, 1)
 	  
 	  nlam_pr = mxGetPr(prhs(11))
-	  call mxCopyPtrToReal8(nlam_pr, nlam, 1)
-	  
+           call mxCopyPtrToInteger8(nlam_pr, nlam, 1)
+
+           
 	  flmin_pr = mxGetPr(prhs(12))
 	  call mxCopyPtrToReal8(flmin_pr, flmin, 1)
 	  
 	  tmp1 = mxGetM(prhs(13))
-      tmp2 = mxGetN(prhs(13))
-      If (tmp1 > tmp2) Then
-      	q = tmp1
-      End If
-      If (tmp2 > tmp1) Then
-      	q = tmp2
-      End If
-      If (tmp1 == tmp2) Then
-      	q = 1
-      End If
+          tmp2 = mxGetN(prhs(13))
+          If (tmp1 > tmp2) Then
+             q = tmp1
+          End If
+          If (tmp2 > tmp1) Then
+             q = tmp2
+          End If
+          If (tmp1 == tmp2) Then
+             q = 1
+          End If
 	  
 	  ALLOCATE(ulam(q))
 	  ulam_pr = mxGetPr(prhs(13))
@@ -599,21 +619,20 @@
 	  call mxCopyPtrToReal8(peps_pr, peps, 1)
 	  
 	  isd_pr = mxGetPr(prhs(16))
-	  call mxCopyPtrToReal8(isd_pr, isd, 1)
+          call mxCopyPtrToInteger8(isd_pr, isd, 1)
 	  
 	  intr_pr = mxGetPr(prhs(17))
-	  call mxCopyPtrToReal8(intr_pr, intr, 1)
+          call mxCopyPtrToInteger8(intr_pr, intr, 1)
 	  
 	  maxit_pr = mxGetPr(prhs(18))
-	  call mxCopyPtrToReal8(maxit_pr, maxit, 1)
-	  
-	  !dims(1) = 1
-	  !dims(2) = 1
+	  call mxCopyPtrToInteger8(maxit_pr, maxit, 1)
+
+   
+
 	  clsid = mxClassIDFromClassName('int32')
-      plhs(1) = mxCreateNumericArray(1, 1, clsid, 0)
-	  
-      !plhs(1) = mxCreateDoubleMatrix(1, 1, 0)
-      nalam_pr = mxGetPr(plhs(1))
+          plhs(1) = mxCreateNumericArray(1, 1, clsid, 0)
+  
+          nalam_pr = mxGetPr(plhs(1))
 	  
 	  plhs(2) = mxCreateDoubleMatrix(nlam, 1, 0)
 	  tmp1 = mxGetM(plhs(2))
@@ -622,7 +641,7 @@
 	  
 	  plhs(3) = mxCreateDoubleMatrix(pmax, nlam, 0)
 	  m = mxGetM(plhs(3))
-      n = mxGetN(plhs(3))
+          n = mxGetN(plhs(3))
 	  ALLOCATE(beta(m, n))
 	  beta_pr = mxGetPr(plhs(3))
 	  
@@ -631,10 +650,8 @@
 	  dims(1) = tmp1
 	  dims(2) = 1
 	  clsid = mxClassIDFromClassName('int32')
-      plhs(4) = mxCreateNumericArray(2, dims, clsid, 0)
+          plhs(4) = mxCreateNumericArray(2, dims, clsid, 0)
 	  
-	  !plhs(4) = mxCreateDoubleMatrix(pmax, 1, 0)
-	  !tmp1 = mxGetM(plhs(4))
 	  ALLOCATE(ibeta(tmp1))
 	  ibeta_pr = mxGetPr(plhs(4))
 	  
@@ -643,9 +660,9 @@
 	  dims(1) = tmp1
 	  dims(2) = 1
 	  clsid = mxClassIDFromClassName('int32')
-      plhs(5) = mxCreateNumericArray(2, dims, clsid, 0)
+          plhs(5) = mxCreateNumericArray(2, dims, clsid, 0)
 	  
-	  !plhs(5) = mxCreateDoubleMatrix(nlam, 1, 0)
+
 	  tmp1 = mxGetM(plhs(5))
 	  ALLOCATE(nbeta(tmp1))
 	  nbeta_pr = mxGetPr(plhs(5))
@@ -656,17 +673,14 @@
 	  alam_pr = mxGetPr(plhs(6))
 	  
 	  clsid = mxClassIDFromClassName('int32')
-      plhs(7) = mxCreateNumericArray(1, 1, clsid, 0)
+          plhs(7) = mxCreateNumericArray(1, 1, clsid, 0)
 	  
-	  !plhs(7) = mxCreateDoubleMatrix(1, 1, 0)
 	  npass_pr = mxGetPr(plhs(7))
 	  
 	  clsid = mxClassIDFromClassName('int32')
-      plhs(8) = mxCreateNumericArray(1, 1, clsid, 0)
+          plhs(8) = mxCreateNumericArray(1, 1, clsid, 0)
 	  
-	  !plhs(8) = mxCreateDoubleMatrix(1, 1, 0)
 	  jerr_pr = mxGetPr(plhs(8))
-
       
         
       Call sglfit(gamma, ngroups, gindex, nobs, nvars, 
@@ -674,26 +688,34 @@
      & intr, maxit, nalam, b0, beta, ibeta, nbeta, alam, 
      & npass, jerr)
 	  
-      call mxCopyInteger4ToPtr(nalam, nalam_pr, 1)     
+      call mxCopyInteger8ToPtr(nalam, nalam_pr, 1)     
       
 	  tmp1 = mxGetM(plhs(2))
 	  call mxCopyReal8ToPtr(b0, b0_pr, tmp1)
 	  
 	  m = mxGetM(plhs(3))
-      n = mxGetN(plhs(3))
+          n = mxGetN(plhs(3))
 	  call mxCopyReal8ToPtr(beta, beta_pr, m*n)     
-	  
+
+
+   
 	  tmp1 = mxGetM(plhs(4))
-	  call mxCopyInteger4ToPtr(ibeta, ibeta_pr, tmp1)
-	  
-	  tmp1 = mxGetM(plhs(5))
-	  call mxCopyInteger4ToPtr(nbeta, nbeta_pr, tmp1)
-	  
+          call mxCopyInteger4ToPtr(ibeta, ibeta_pr, tmp1)
+
+          tmp1 = mxGetM(plhs(5))
+
+
+
+
+      call mxCopyInteger4ToPtr(nbeta, nbeta_pr, tmp1)
+  
+
+   
 	  tmp1 = mxGetM(plhs(6))
 	  call mxCopyReal8ToPtr(alam, alam_pr, tmp1)
 	  
-	  call mxCopyInteger4ToPtr(npass, npass_pr, 1)     
-	  call mxCopyInteger4ToPtr(jerr, jerr_pr, 1)     
+	  call mxCopyInteger8ToPtr(npass, npass_pr, 1)     
+	  call mxCopyInteger8ToPtr(jerr, jerr_pr, 1)        
 	  
       
       Return

@@ -43,7 +43,7 @@ w = lb(g, degree, 0, 1);% weights of Legendre poly.
 
 warning('off')
 [T,p] = size(xtmp);
-p = 20;
+
 x = zeros(T - jmax - horizon + 2, p * (degree + 1));
 gindex = zeros(p * (degree + 1),1);
 for i = 1:p
@@ -61,7 +61,7 @@ y = y((jmax + horizon - 1):end);
 
 % run cv sg-LASSO:
 % takes some time...
-fit = cvsglfit(x, y, 'gamma', 0.5, 'gindex', gindex, 'standardize', true);
+fit = cvsglfit(x, y, 'gamma', 0, 'gindex', gindex, 'standardize', true);
 % beta's:
 fit.cvsglfit.lam_min.beta
 % intercept:

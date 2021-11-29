@@ -42,8 +42,8 @@ function output = sgl(x,y,varargin)
 %                  Default is min(dfmax*1.2,p).
 % 'standardize'    logical flag for variable standardization, prior to fitting the model sequence. The
 %                  coefficients are always returned to the original scale. It is recommended to keep
-%                  standardize=TRUE. Default is FALSE.
-% 'intercept'      whether intercept be fitted (TRUE) or set to zero (FALSE). Default is FALSE.
+%                  standardize=TRUE. Default is TRUE.
+% 'intercept'      whether intercept be fitted (TRUE) or set to zero (FALSE). Default is TRUE.
 % 'eps'            convergence threshold for block coordinate descent. Each inner block coordinatedescent loop continues until
 %                  the maximum change in the objective after any coefficient update is less than thresh times the null deviance.
 %                  Defaults value is 1e-8.
@@ -69,7 +69,7 @@ function output = sgl(x,y,varargin)
 % LICENSE: GPL-2
 [gamma,nlambda,lambda_factor,lambda,pf,gindex,dfmax,pmax,standardize,intercept,eps,maxit,peps,fe,N] = ...
     process_options(varargin,'gamma',1,'nlambda',100,'lambda_factor',[],'lambda',[],'pf',[],'gindex',[], ...
-    'dfmax',[],'pmax',[],'standardize',false,'intercept',true,'eps',1e-8,'maxit',1e6,'peps',1e-8,'fe',false,'N',[]);
+    'dfmax',[],'pmax',[],'standardize',true,'intercept',true,'eps',1e-8,'maxit',1e6,'peps',1e-8,'fe',false,'N',[]);
 
 if any(any(isnan(x)))
     error('data in x has missing entries/NaNs. program cannot proceed');

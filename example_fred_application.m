@@ -61,7 +61,7 @@ y = y((jmax + horizon - 1):end);
 
 % run cv sg-LASSO:
 % takes some time...
-fit = cvsglfit(x, y, 'gamma', 0, 'gindex', gindex, 'standardize', true);
+fit = cvsglfit(x, y, 'gamma', 0.5, 'gindex', gindex);
 % beta's:
 fit.cvsglfit.lam_min.beta
 % intercept:
@@ -73,8 +73,10 @@ fit.cvsglfit.lam_min.b0
 gamma = linspace(1,0,21);
 cvms = zeros(21, 1);
 for gi = 1:21
-    fit = cvsglfit(x, y, 'gamma', gamma(gi), 'gindex', gindex, 'standardize', true);
+    fit = cvsglfit(x, y, 'gamma', gamma(gi), 'gindex', gindex);
     cvms(gi) = min(fit.cvm);
 end
 idx = find(min(cvms)==cvms,1,'first');
-fit = cvsglfit(x, y, 'gamma', gamma(idx), 'gindex', gindex, 'standardize', true);
+% optimal gamma:
+gamma(idx)
+fit = cvsglfit(x, y, 'gamma', gamma(idx), 'gindex', gindex);

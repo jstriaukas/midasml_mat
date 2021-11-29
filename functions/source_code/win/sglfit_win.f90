@@ -193,8 +193,7 @@
                 b(0) = b(0) + d
                 r = r - d
               END DO ! END GRADIENT DESCENT
-
-              b(0) = u
+              !b(0) = u
               d = b(0) - oldb
               If (abs(d) > 0.0D0) dif = max(dif, d**2)
             End If

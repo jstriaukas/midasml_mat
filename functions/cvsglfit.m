@@ -48,7 +48,7 @@ function output = cvsglfit(x,y,varargin)
 % LICENSE: GPL-2
 [nfolds,foldid,parallel,gamma,nlambda,lambda_factor,lambda,pf,gindex,dfmax,pmax,standardize,intercept,eps,maxit,peps,fe,N] = ...
     process_options(varargin,'nfolds',10,'foldid',[],'parallel',false,'gamma',1.0,'nlambda',100,'lambda_factor',[],'lambda',[],'pf',[],'gindex',[], ...
-    'dfmax',[],'pmax',[],'standardize',false,'intercept',true,'eps',1e-8,'maxit',1e6,'peps',1e-8,'fe',false,'N',[]);
+    'dfmax',[],'pmax',[],'standardize',true,'intercept',true,'eps',1e-8,'maxit',1e6,'peps',1e-8,'fe',false,'N',[]);
 
 [n,~] = size(x);
 

@@ -61,8 +61,7 @@ function output = sgl(x,y,varargin)
 %
 %              min_b |y-Xb|_T^2 + 2lambda (gamma |b|_1 + (1-gamma)|b|_2,1.
 %
-%              A pair of tuning parameters (lambda,gamma) is chosen via
-%              10-fold cross-validation.
+%              For a fixed gamma, lambda sequence is precomputed. 
 %
 % DATE: 2021-06-09
 % AUTHOR: Jonas Striaukas

@@ -1,6 +1,6 @@
 function output = icsglfit(x,y,varargin)
 %--------------------------------------------------------------------------
-% cvsglfit: fit a linear model with sg-LASSO regularization 
+% icsglfit: fit a linear model with sg-LASSO regularization 
 %           and return solution based on information criteria (IC) 
 %           choice.
 %--------------------------------------------------------------------------
@@ -66,7 +66,7 @@ function output = icsglfit(x,y,varargin)
     output.icsglfit.lam_min.b0 = sglfit.b0(idxmin);
     output.icsglfit.lam_min.beta = sglfit.beta(:,idxmin);
 
-    output.class = 'cv.sglfit';
+    output.class = 'ic.sglfit';
 end
 
 function pen = ic_pen(ic_choice, df, t)

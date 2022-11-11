@@ -59,7 +59,9 @@ end
 
 sglfit = sgl(x,y,'gamma',gamma,'nlambda',nlambda,'lambda_factor',lambda_factor,...
     'lambda',lambda,'pf',pf,'gindex',gindex,'dfmax',dfmax,'pmax',pmax,'standardize',standardize,...
-    'intercept',intercept,'eps',eps,'maxit',maxit,'peps',peps);
+    'intercept',intercept,'eps',eps,'maxit',maxit,'peps',peps,'fe',fe);
+lambdaz = sglfit.lambda; %The lambda grid
+
 cvraw = zeros(nfolds, nlambda);
 if fe
     if parallel==true
@@ -68,18 +70,18 @@ if fe
             xin = x(~which,:);
             yin = y(~which,:);
             fit =  sgl(xin,yin,'gamma',gamma,'nlambda',nlambda,'lambda_factor',lambda_factor,...
-                'lambda',lambda,'pf',pf,'gindex',gindex,'dfmax',dfmax,'pmax',pmax,'standardize',standardize,...
-                'intercept',intercept,'eps',eps,'maxit',maxit,'peps',peps,'fe',true,'N',N);
-            e_lam = sglfitpredict(fit,  x(which,:)) - repmat(y(which,:), 1, nlambda);
+                'lambda',lambdaz,'pf',pf,'gindex',gindex,'dfmax',dfmax,'pmax',pmax,'standardize',standardize,...
+                'intercept',intercept,'eps',eps,'maxit',maxit,'peps',peps,'fe',fe,'N',N);
+            e_lam = sglfitpredict(fit,  x(which,:),fe) - repmat(y(which,:), 1, nlambda);
             cvraw(i, :) = mean(e_lam.^2,1);
         end
     else
         for i = 1:nfolds
             which = foldid == i;
             fit =  sgl(x(~which,:),y(~which,:),'gamma',gamma,'nlambda',nlambda,'lambda_factor',lambda_factor,...
-                'lambda',lambda,'pf',pf,'gindex',gindex,'dfmax',dfmax,'pmax',pmax,'standardize',standardize,...
-                'intercept',intercept,'eps',eps,'maxit',maxit,'peps',peps,'fe',true,'N',N);
-            e_lam = sglfitpredict(fit,  x(which,:)) - repmat(y(which,:), 1, nlambda);
+                'lambda',lambdaz,'pf',pf,'gindex',gindex,'dfmax',dfmax,'pmax',pmax,'standardize',standardize,...
+                'intercept',intercept,'eps',eps,'maxit',maxit,'peps',peps,'fe',fe,'N',N);
+            e_lam = sglfitpredict(fit,  x(which,:),fe) - repmat(y(which,:), 1, nlambda);
             cvraw(i, :) = mean(e_lam.^2,1);
         end
     end
@@ -92,18 +94,18 @@ else
             xin = x(~which,:);
             yin = y(~which,:);
             fit =  sgl(xin,yin,'gamma',gamma,'nlambda',nlambda,'lambda_factor',lambda_factor,...
-                'lambda',lambda,'pf',pf,'gindex',gindex,'dfmax',dfmax,'pmax',pmax,'standardize',standardize,...
-                'intercept',intercept,'eps',eps,'maxit',maxit,'peps',peps);
-            e_lam = sglfitpredict(fit,  x(which,:)) - repmat(y(which,:), 1, nlambda);
+                'lambda',lambdaz,'pf',pf,'gindex',gindex,'dfmax',dfmax,'pmax',pmax,'standardize',standardize,...
+                'intercept',intercept,'eps',eps,'maxit',maxit,'peps',peps,'fe',fe);
+            e_lam = sglfitpredict(fit,  x(which,:),fe) - repmat(y(which,:), 1, nlambda);
             cvraw(i, :) = mean(e_lam.^2,1);
         end
     else
         for i = 1:nfolds
             which = foldid == i;
             fit =  sgl(x(~which,:),y(~which,:),'gamma',gamma,'nlambda',nlambda,'lambda_factor',lambda_factor,...
-                'lambda',lambda,'pf',pf,'gindex',gindex,'dfmax',dfmax,'pmax',pmax,'standardize',standardize,...
-                'intercept',intercept,'eps',eps,'maxit',maxit,'peps',peps);
-            e_lam = sglfitpredict(fit,  x(which,:)) - repmat(y(which,:), 1, nlambda);
+                'lambda',lambdaz,'pf',pf,'gindex',gindex,'dfmax',dfmax,'pmax',pmax,'standardize',standardize,...
+                'intercept',intercept,'eps',eps,'maxit',maxit,'peps',peps,'fe',fe);
+            e_lam = sglfitpredict(fit,  x(which,:),fe) - repmat(y(which,:), 1, nlambda);
             cvraw(i, :) = mean(e_lam.^2,1);
         end
     end

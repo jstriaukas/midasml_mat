@@ -87,7 +87,7 @@ if (isempty(lambda_factor))
     end
 end
 maxit = int32(maxit);
-nlam = int32(nlambda);
+%nlambda = int32(nlambda);
 if (isempty(gindex))
     gindex = 1:nvars;
 end
@@ -121,8 +121,9 @@ if (isempty(lambda))
 else
     flmin = double(1);
     ulam = double(sort(lambda, 'descend'));
-    nlam = int32(length(lambda));
+    nlambda = length(lambda);
 end
+nlambda = int32(nlambda);
 gamma = double(gamma);
 if (gamma < 0 || gamma > 1)
     error('gamma must be in [0,1]');
@@ -136,7 +137,7 @@ y = double(y);
 pf = double(pf);
 dfmax = int32(dfmax);
 pmax = int32(pmax);
-nlam = int32(nlam);
+%nlam = int32(nlam);
 eps = double(eps);
 peps = double(peps);
 isd = int32(standardize);
@@ -163,12 +164,12 @@ if fe
     end
     intr = int32(0);
     [nalam,b0,beta,ibeta,nbeta,alam,npass,jerr] = sglfit(gamma, ngroups, gindex, ...
-        nobs, nvars, xn, yn, pf, dfmax, pmax, nlam, flmin, ulam, ...
+        nobs, nvars, xn, yn, pf, dfmax, pmax, nlambda, flmin, ulam, ...
         eps, peps, isd, int32(intr), maxit);
 else
     
     [nalam,b0,beta,ibeta,nbeta,alam,npass,jerr] = sglfit(gamma, ngroups, gindex, ...
-        nobs, nvars, x, y, pf, dfmax, pmax, nlam, flmin, ulam, ...
+        nobs, nvars, x, y, pf, dfmax, pmax, nlambda, flmin, ulam, ...
         eps, peps, isd, int32(intr), maxit);
 end
 % ------------------------------------------------------------------------%
@@ -180,7 +181,7 @@ if (jerr~=0)
         warning(errmsg.msg);
     end
 end
-b = zeros(nvars, nlam);
+b = zeros(nvars, nlambda);
 for l = 1:nalam
     nk = nbeta(l);
     b(ibeta(1:nk),l) = beta(1:nk,l);

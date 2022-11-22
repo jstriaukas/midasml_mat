@@ -32,23 +32,27 @@ xtmp(isnan(xtmp)) = 0;
 jmax = 12;
 horizon = 1;
 % example of data:
-mixed_freq_data(xtmp(:,1), dates, xtmp(:,1), dates, jmax, horizon, 0, dates(1), dates(end), true);
+%mixed_freq_data(xtmp(:,1), dates, xtmp(:,1), dates, jmax, horizon, 0, dates(1), dates(end), true);
 
 
 % choose degree fpr Legendre polynomials:
 degree = 3; % 3 is typically good enough to be able to capture nonlinearities of lag/MIDAS weight function.
 
 g = linspace(0, 1, jmax)';
-w = lb(g, degree, 0, 1);% weights of Legendre poly.
+w = lb(g, degree, 0, 1)/jmax;% weights of Legendre poly.
 
 warning('off')
-[T,p] = size(xtmp);
 
+xtmp = xtmp(397:end,:);
+y = y(397:end);
+
+[T,p] = size(xtmp);
 x = zeros(T - jmax - horizon + 2, p * (degree + 1));
 gindex = zeros(p * (degree + 1),1);
+
 for i = 1:p
    xtmpn = xtmp(:,i);
-   out = mixed_freq_data(xtmpn,dates,xtmpn,dates,jmax,horizon,0,dates(1),dates(end),false);
+   out = mixed_freq_data(xtmpn,dates,zscore(xtmpn),dates,jmax,horizon,0,dates(1),dates(end),false);
    xw = out.EstX*w;
    idx = (i * (degree + 1) - degree) : i * (degree + 1);
    x(:,idx) = xw;
@@ -61,7 +65,7 @@ y = y((jmax + horizon - 1):end);
 
 % run cv sg-LASSO:
 % takes some time...
-fit = cvsglfit(x, y, 'gamma', 0.5, 'gindex', gindex);
+fit = cvsglfit(x, y, 'gamma', 0.5, 'gindex', gindex, 'standardize', false);
 % beta's:
 fit.cvsglfit.lam_min.beta
 % intercept:
@@ -70,13 +74,13 @@ fit.cvsglfit.lam_min.b0
 
 % compute CV solution for both gamma and lambda:
 % run loop over gamma grid (takes a bit more time....).
-gamma = linspace(1,0,21);
-cvms = zeros(21, 1);
-for gi = 1:21
-    fit = cvsglfit(x, y, 'gamma', gamma(gi), 'gindex', gindex);
-    cvms(gi) = min(fit.cvm);
-end
-idx = find(min(cvms)==cvms,1,'first');
-% optimal gamma:
-gamma(idx)
-fit = cvsglfit(x, y, 'gamma', gamma(idx), 'gindex', gindex);
+% gamma = linspace(1,0,21);
+% cvms = zeros(21, 1);
+% for gi = 1:21
+%     fit = cvsglfit(x, y, 'gamma', gamma(gi), 'gindex', gindex);
+%     cvms(gi) = min(fit.cvm);
+% end
+% idx = find(min(cvms)==cvms,1,'first');
+% % optimal gamma:
+% gamma(idx)
+% fit = cvsglfit(x, y, 'gamma', gamma(idx), 'gindex', gindex);

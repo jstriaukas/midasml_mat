@@ -52,7 +52,7 @@ gindex = zeros(p * (degree + 1),1);
 
 for i = 1:p
    xtmpn = xtmp(:,i);
-   out = mixed_freq_data(xtmpn,dates,zscore(xtmpn),dates,jmax,horizon,0,dates(1),dates(end),false);
+   out = mixed_freq_data(xtmpn,dates,xtmpn,dates,jmax,horizon,0,dates(1),dates(end),false);
    xw = out.EstX*w;
    idx = (i * (degree + 1) - degree) : i * (degree + 1);
    x(:,idx) = xw;
@@ -65,7 +65,9 @@ y = y((jmax + horizon - 1):end);
 
 % run cv sg-LASSO:
 % takes some time...
-fit = cvsglfit(x, y, 'gamma', 0.5, 'gindex', gindex, 'standardize', false);
+fit = cvsglfit(x, y, 'gamma', 0.5, 'gindex', gindex, 'standardize', true);
+fit = cvsglfit(x, y, 'gamma', 0.4, 'gindex', gindex, 'standardize', true);
+
 % beta's:
 fit.cvsglfit.lam_min.beta
 % intercept:

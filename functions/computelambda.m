@@ -1,5 +1,5 @@
-function ulam = computelambda(nlambda, flmin, nobs, x, y, gamma, gindex, ngroups, pf)
-    maxlam = maxlambda(nobs, x, y, gamma, gindex, ngroups, pf);
+function ulam = computelambda(nlambda, flmin, nobs, x, y, gamma, gindex, ngroups, pf, standardize)
+    maxlam = maxlambda(nobs, x, y, gamma, gindex, ngroups, pf, standardize);
     if isnan(maxlam)
         error('data in x or y has missing entries/NaNs. program cannot proceed');
     end
@@ -12,8 +12,13 @@ function ulam = computelambda(nlambda, flmin, nobs, x, y, gamma, gindex, ngroups
 end
 
 
-function maxlam = maxlambda(nobs, x, y, gamma, gindex, ngroups, pf)
+function maxlam = maxlambda(nobs, X, y, gamma, gindex, ngroups, pf, standardize)
     r = y;
+    x = X;
+    if standardize
+        r = zscore(r);
+        x = zscore(x);
+    end 
     xy = x'*r;  
     xy = xy/double(nobs);
     wmaxg = zeros(ngroups,1);

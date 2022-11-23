@@ -117,7 +117,7 @@ if (isempty(lambda))
         error('lambda_factor should be less than 1.0')
     end
     flmin = double(lambda_factor);
-    ulam = computelambda(nlambda, flmin, nobs, x, y, gamma, gindex, length(gindex), pf);
+    ulam = computelambda(nlambda, flmin, nobs, x, y, gamma, gindex, length(gindex), pf, standardize);
 else
     flmin = double(1);
     ulam = double(sort(lambda, 'descend'));

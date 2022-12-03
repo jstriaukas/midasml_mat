@@ -4,7 +4,7 @@
  
 ## About
 
-The package aim to provide Matlab users the implementation of midasml approach developed by [^1][^2][^3]. The package is equipped with the fast implementation of the sparse-group LASSO estimator by means of proximal block coordinate descent, which is implemented in Fortran. User are advised to compile the Fortran code in the src folder on their system and compiler. 
+The package aim is to provide Matlab users the implementation of midasml approach developed by [^1][^2][^3]. The package is equipped with the fast implementation of the sparse-group LASSO estimator by means of proximal block coordinate descent, which is implemented in Fortran. User are advised to compile the Fortran code in the src folder on their system and compiler. 
 
 ## Software in other languages
 

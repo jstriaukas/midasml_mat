@@ -11,8 +11,13 @@
 
 clear; clc;
 
-addpath 'functions';
-load 'fred_example/fred_example_data.mat';
+addpath '../functions';
+
+% data
+
+fred_codes = ["GDPC1";"CONSUMER";"RPI";"INDPRO";"IPMANSICS";"TCU";"PAYEMS";"UNRATE";"HOUST";"CPIAUCSL"];
+[x, Meta] = fred_api(fred_codes, 'StartDate',datetime(1995,1,1));
+data = x{:,:};
 
 % let's take the first var in FRED MD and predict it using all other vars
 % in the database using 12 monthly lags

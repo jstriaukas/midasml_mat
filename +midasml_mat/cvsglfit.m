@@ -50,12 +50,17 @@ function output = cvsglfit(x,y,varargin)
     process_options(varargin,'nfolds',10,'foldid',[],'parallel',false,'gamma',1.0,'nlambda',100,'lambda_factor',[],'lambda',[],'pf',[],'gindex',[], ...
     'dfmax',[],'pmax',[],'standardize',true,'intercept',true,'eps',1e-8,'maxit',1e6,'peps',1e-8,'fe',false,'N',[]);
 
+if isempty(nfolds)
+    nfolds=10;
+end
+
 [n,~] = size(x);
 
 if isempty(foldid)
     population = cat(2, repmat(1:nfolds, 1, floor(n/nfolds)), 1:mod(n,nfolds));
     foldid = sort(population);
 end
+nfolds = max(foldid);
 
 sglfit = sgl(x,y,'gamma',gamma,'nlambda',nlambda,'lambda_factor',lambda_factor,...
     'lambda',lambda,'pf',pf,'gindex',gindex,'dfmax',dfmax,'pmax',pmax,'standardize',standardize,...

@@ -61,14 +61,57 @@ function output = sgl(x,y,varargin)
 %
 %              min_b |y-Xb|_T^2 + 2lambda (gamma |b|_1 + (1-gamma)|b|_2,1.
 %
-%              For a fixed gamma, lambda sequence is precomputed. 
+%              A pair of tuning parameters (lambda,gamma) is chosen via
+%              10-fold cross-validation.
 %
 % DATE: 2021-06-09
 % AUTHOR: Jonas Striaukas
 % LICENSE: GPL-2
-[gamma,nlambda,lambda_factor,lambda,pf,gindex,dfmax,pmax,standardize,intercept,eps,maxit,peps,fe,N] = ...
-    process_options(varargin,'gamma',1,'nlambda',100,'lambda_factor',[],'lambda',[],'pf',[],'gindex',[], ...
-    'dfmax',[],'pmax',[],'standardize',true,'intercept',true,'eps',1e-8,'maxit',1e6,'peps',1e-8,'fe',false,'N',[]);
+% Updated: 20240213
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+p = inputParser;
+addRequired(p,'x', @(z) isnumeric(z));
+addRequired(p,'y', @(z) isnumeric(z));
+addParameter(p,'gamma',1, @(z) isnumeric(z));
+addParameter(p,'nlambda',100, @(z) isnumeric(z));    
+addParameter(p,'lambda_factor',[], @(z) isnumeric(z)); 
+addParameter(p,'lambda',[], @(z) isnumeric(z));         
+addParameter(p,'pf',[], @(z) isnumeric(z)); 
+addParameter(p,'gindex',[], @(z) isnumeric(z)) 
+addParameter(p,'dfmax',[], @isnumeric);       
+addParameter(p,'pmax',[], @(z) isnumeric(z)); 
+addParameter(p,'standardize',false, @(z) islogical(z)); 
+addParameter(p,'intercept',true, @(z) islogical(z)); 
+addParameter(p,'eps',1e-8, @(z) isnumeric(z));  
+addParameter(p,'maxit',1e6, @(z) isnumeric(z));
+addParameter(p,'peps',1e-8, @(z) isnumeric(z)); 
+addParameter(p,'fe',false, @(z) islogical(z)); 
+addParameter(p,'N',[], @(z) isnumeric(z)); 
+
+parse(p,x,y,varargin{:});
+y = p.Results.y;
+x = p.Results.x;
+gamma = p.Results.gamma;
+nlambda = p.Results.nlambda;
+lambda_factor = p.Results.lambda_factor;
+lambda = p.Results.lambda;
+pf = p.Results.pf;
+gindex = p.Results.gindex;
+dfmax = p.Results.dfmax;
+pmax = p.Results.pmax;
+standardize = p.Results.standardize; 
+intercept = p.Results.intercept;
+eps = p.Results.eps;
+maxit = p.Results.maxit;
+peps = p.Results.peps;
+fe = p.Results.fe;
+N = p.Results.N;
+
+% [gamma,nlambda,lambda_factor,lambda,pf,gindex,dfmax,pmax,standardize,intercept,eps,maxit,peps,fe,N] = ...
+%     process_options(varargin,'gamma',1,'nlambda',100,'lambda_factor',[],'lambda',[],'pf',[],'gindex',[], ...
+%     'dfmax',[],'pmax',[],'standardize',true,'intercept',true,'eps',1e-8,'maxit',1e6,'peps',1e-8,'fe',false,'N',[]);
 
 if any(any(isnan(x)))
     error('data in x has missing entries/NaNs. program cannot proceed');
@@ -79,48 +122,48 @@ end
 
 nobs = int32(size(x,1));
 nvars = int32(size(x,2));
-if (isempty(lambda_factor))
-    if (nobs < nvars)
+if isempty(lambda_factor)
+    if nobs < nvars
         lambda_factor = 1e-2;
     else
         lambda_factor = 1e-4;
     end
 end
+
 maxit = int32(maxit);
 %nlambda = int32(nlambda);
-if (isempty(gindex))
+if isempty(gindex)
     gindex = 1:nvars;
 end
-if (size(gindex,1)==1)
+if size(gindex,1)==1
     gindex = gindex';
 end
-if (isempty(pf))
+if isempty(pf)
     pf = ones(nvars, 1);
 end
-if (size(pf,1)==1)
+if size(pf,1)==1
     pf = pf';
 end
-if (isempty(dfmax))
+if isempty(dfmax)
     dfmax = nvars+1;
 end
-if (isempty(pmax))
-    pmax = min(1.2 * dfmax, nvars);
+if isempty(pmax)
+    pmax = min(1.2*dfmax, nvars);
 end
 
 ngroups = int32(max(gindex));
-if (any(diff(gindex)>1))
+if any(diff(gindex)>1)
     error('only adjancet group memberships allowed');
 end
-
-if (isempty(lambda))
-    if (lambda_factor >= 1.0)
+if isempty(lambda) %If user did NOT supply lambda grid, compute it using computelambda()
+    if lambda_factor >= 1.0
         error('lambda_factor should be less than 1.0')
     end
     flmin = double(lambda_factor);
     ulam = computelambda(nlambda, flmin, nobs, x, y, gamma, gindex, length(gindex), pf, standardize);
 else
     flmin = double(1);
-    ulam = double(sort(lambda, 'descend'));
+    ulam = double(sort(lambda, 'descend')); %Sort user-supplied lambda grip descendingly
     nlambda = length(lambda);
 end
 nlambda = int32(nlambda);
@@ -128,7 +171,6 @@ gamma = double(gamma);
 if (gamma < 0 || gamma > 1)
     error('gamma must be in [0,1]');
 end
-
 gindex = int32(find([diff(gindex);1]==1));
 nobs = int32(nobs);
 nvars = int32(nvars);
@@ -140,39 +182,43 @@ pmax = int32(pmax);
 %nlam = int32(nlam);
 eps = double(eps);
 peps = double(peps);
-isd = int32(standardize);
+isd = int32(standardize); 
 intr = int32(intercept);
 maxit = int32(maxit);
-
 % --------------------------------- fit sg-LASSO -------------------------%
-if fe
+if fe %fe = fixed effects
     yn = y;
     xn = x;
-    T = size(x,1)/N;
+    T = size(x,1)/N; %N panels/groups each containing T time-series obs (i.e. balanced panel)
     if rem(T,1)~=0
         error('you chose to fit fixed effects with sg-LASSO, but the number of fixed effects specified is wrong, i.e. NT != N * T. change ''N'' or set ''fe=false''.')
     end
+    
     ymb = zeros(N,1);
     xmb = zeros(N,size(x,2));
     for k = 1:N
         festart = (k-1)*T+1;
         feend = k*T;
-        ymb(k) = mean(y(festart:feend));
+        ymb(k) = mean(y(festart:feend)); %1 to T; T+1 to 2T; etc.
         xmb(k,:) = mean(x(festart:feend,:),1);
+        %The constant/dummies are then computed as: a0(:,l) = ymb - xmb*b(:,l)
         yn(festart:feend) = y(festart:feend) - ymb(k);
         xn(festart:feend,:) = x(festart:feend,:) - xmb(k,:);
-    end
+    end 
     intr = int32(0);
     [nalam,b0,beta,ibeta,nbeta,alam,npass,jerr] = sglfit(gamma, ngroups, gindex, ...
         nobs, nvars, xn, yn, pf, dfmax, pmax, nlambda, flmin, ulam, ...
         eps, peps, isd, int32(intr), maxit);
-else
-    
+
+else %NOT Fixed Effects (fe=false)
+
     [nalam,b0,beta,ibeta,nbeta,alam,npass,jerr] = sglfit(gamma, ngroups, gindex, ...
         nobs, nvars, x, y, pf, dfmax, pmax, nlambda, flmin, ulam, ...
         eps, peps, isd, int32(intr), maxit);
 end
+
 % ------------------------------------------------------------------------%
+
 if (jerr~=0)
     errmsg = err(jerr,maxit,pmax);
     if (errmsg.fatal)
@@ -181,12 +227,14 @@ if (jerr~=0)
         warning(errmsg.msg);
     end
 end
+
 b = zeros(nvars, nlambda);
 for l = 1:nalam
     nk = nbeta(l);
     b(ibeta(1:nk),l) = beta(1:nk,l);
 end
-if fe
+
+if fe %Fixed Effects (for panel data)
     b0 = zeros(nlambda, 1);
     a0 = zeros(N, nlambda);
     for l = 1:nlambda
@@ -195,10 +243,12 @@ if fe
     output.a0 = a0;
     output.N = N;
 end
+
 output.b0 = b0;
 output.beta = b;
 output.npass = npass;
-output.lambda = alam;
+output.lambda = alam; %The lambda grip;
+%output.lambda = ulam; %Equivalent to above
 
 end
 
@@ -213,6 +263,7 @@ else
     output = errsgl(n,maxit,pmax);
     output.msg = sprintf('from glmnet Fortran code (error code %d); %s', n, output.msg);
 end
+
 end
 
 function output = errsgl(n,maxit,pmax)
@@ -230,6 +281,7 @@ if (n > 0)  %fatal error
     output.n = n;
     output.fatal = true;
     output.msg = msg;
+    
 elseif (n < 0)  %non-fatal error
     if (n > -10000)
         msg = sprintf('Convergence for %dth lambda value not reached after maxit=%d iterations; solutions for larger lambdas returned',-n,maxit);

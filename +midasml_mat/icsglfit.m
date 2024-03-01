@@ -1,6 +1,6 @@
-function output = icsglfit(x,y,varargin)
+function output = icsglfit(x,y,ic,varargin)
 %--------------------------------------------------------------------------
-% icsglfit: fit a linear model with sg-LASSO regularization 
+% cvsglfit: fit a linear model with sg-LASSO regularization 
 %           and return solution based on information criteria (IC) 
 %           choice.
 %--------------------------------------------------------------------------
@@ -44,40 +44,95 @@ function output = icsglfit(x,y,varargin)
 % DATE: 2021-11-10
 % AUTHOR: Jonas Striaukas
 % LICENSE: GPL-2
-    [ic,gamma,nlambda,lambda_factor,lambda,pf,gindex,dfmax,pmax,standardize,intercept,eps,maxit,peps] = ...
-            process_options(varargin,'ic','bic','gamma',1.0,'nlambda',100,'lambda_factor',[],'lambda',[],'pf',[],'gindex',[], ...
-            'dfmax',[],'pmax',[],'standardize',false,'intercept',true,'eps',1e-8,'maxit',1e6,'peps',1e-8);
-    ic = lower(ic);
+% Updated: 20240213
+
+p = inputParser;
+addRequired(p,'x', @(z) isnumeric(z));
+addRequired(p,'y', @(z) isnumeric(z));
+addRequired(p,'ic',@(z) islogical(z) || ischar(z) || isnumeric(z)); 
+addParameter(p,'gamma',1, @(z) isnumeric(z)); 
+addParameter(p,'nlambda',100, @(z) isnumeric(z));         
+addParameter(p,'lambda_factor',[], @(z) isnumeric(z)); 
+addParameter(p,'lambda',[], @(z) isnumeric(z));           
+addParameter(p,'pf',[], @(z) isnumeric(z)); 
+addParameter(p,'gindex',[], @(z) isnumeric(z)) 
+addParameter(p,'dfmax',[], @(z) isnumeric(z));     
+addParameter(p,'pmax',[], @(z) isnumeric(z)); 
+addParameter(p,'standardize',false, @(z) islogical(z)); 
+addParameter(p,'intercept',true, @(z) islogical(z)); 
+addParameter(p,'eps',1e-8, @(z) isnumeric(z));
+addParameter(p,'maxit',1e6, @(z) isnumeric(z));
+addParameter(p,'peps',1e-8, @(z) isnumeric(z));
+addParameter(p,'fe',false, @(z) islogical(z)); 
+addParameter(p,'N',[], @(z) isnumeric(z)); 
+
+parse(p,x,y,ic,varargin{:});
+x = p.Results.x;
+y = p.Results.y;
+ic = p.Results.ic;
+gamma = p.Results.gamma;
+nlambda = p.Results.nlambda;
+lambda_factor = p.Results.lambda_factor;
+lambda = p.Results.lambda;
+pf = p.Results.pf;
+gindex = p.Results.gindex;
+dfmax = p.Results.dfmax;
+pmax = p.Results.pmax;
+standardize = p.Results.standardize; 
+intercept = p.Results.intercept;
+eps = p.Results.eps;
+maxit = p.Results.maxit;
+peps = p.Results.peps;
+fe = p.Results.fe;
+N = p.Results.N;
+
+%     [ic,gamma,nlambda,lambda_factor,lambda,pf,gindex,dfmax,pmax,standardize,intercept,eps,maxit,peps] = ...
+%             process_options(varargin,'ic','bic','gamma',1.0,'nlambda',100,'lambda_factor',[],'lambda',[],'pf',[],'gindex',[], ...
+%             'dfmax',[],'pmax',[],'standardize',false,'intercept',true,'eps',1e-8,'maxit',1e6,'peps',1e-8);
+
+    ic = char(lower(ic)); %string containing the ic: e.g. 'BIC'
+
+    if isempty(ic) %Set default ic value
+        ic='bic'; 
+    end
+    
+    validICs = {'bic','aic','aicc'};
+    if ~any(strcmpi(ic, validICs))
+        error(['Input ''ic'' can only be one of the following: ', char(join(validICs,", "))] )
+    end
+    
     [n,~] = size(x);
     sglfit = sgl(x,y,'gamma',gamma,'nlambda',nlambda,'lambda_factor',lambda_factor,...
                 'lambda',lambda,'pf',pf,'gindex',gindex,'dfmax',dfmax,'pmax',pmax,'standardize',standardize,...
-                'intercept',intercept,'eps',eps,'maxit',maxit,'peps',peps);
-    fits = sglfitpredict(sglfit, x);
-    cvm = zeros(nlambda,1);
+                'intercept',intercept,'eps',eps,'maxit',maxit,'peps',peps,'fe',false,'N',N); %here: fe=false
+    
+    fits = sglfitpredict(sglfit, x); %the fitted_y's for all the lambdas
+    cvm = zeros(nlambda,1); %preallocation
     sigsqhat = sum((y-mean(y)).^2)/n;
-    for i = 1:nlambda
+    for i = 1:nlambda %Loop over lambdas
         mse = mean((y - fits(:,i)).^2)/n;
         df = sum(sglfit.beta(:,i) == 0) + double(intercept);
-        cvm(i) = mse/sigsqhat + ic_pen(ic, df, n);
+        cvm(i) = mse/sigsqhat + ic_pen(ic, df, n); %BIC, AIC, or AICc for each lambda
     end
+    
     output.sglfit = sglfit;
-    output.cvm = cvm';
-    idxmin = min(cvm)==cvm;
-    output.lambda_min = sglfit.lambda(idxmin);
+    output.cvm = cvm'; %All the ICs
+    idxmin = find(cvm==min(cvm),1); %NB: If the smallest element occurs multiple times, takes the 1st one (and since lambda sequence is decsending, this takes the most parsimonious solution)
+
+    output.lambda_min = sglfit.lambda(idxmin); %The optimal LAMBDA
     output.icsglfit.lam_min.b0 = sglfit.b0(idxmin);
     output.icsglfit.lam_min.beta = sglfit.beta(:,idxmin);
 
-    output.class = 'ic.sglfit';
+    output.class = 'cv.sglfit';
 end
 
+%%% Subfunction %%%
 function pen = ic_pen(ic_choice, df, t)
-  if strcmp(ic_choice,"bic")
-    pen = log(t)/t*df;
-  end
-  if strcmp(ic_choice,"aic")
-    pen = 2/t*df;
-  end
-  if strcmp(ic_choice,"aicc")
-    pen = 2*df/(t - df - 1);
+  if strcmp(ic_choice,"bic") %BIC
+      pen = log(t)/t*df;
+  elseif strcmp(ic_choice,"aic") %AIC
+      pen = 2/t*df;
+  elseif strcmp(ic_choice,"aicc") %AICc
+      pen = 2*df/(t - df - 1);
   end
 end
